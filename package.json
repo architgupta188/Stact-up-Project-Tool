@@ -1,0 +1,15 @@
+{
+  "name": "ventureiq",
+  "version": "1.0.0",
+  "description": "VentureIQ - AI Startup Validation Platform",
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "dev": "node node_modules/concurrently/dist/bin/concurrently.js \"cd backend && node --import tsx src/server.ts\" \"cd frontend && node node_modules/vite/bin/vite.js\"",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "db:push": "cd backend && npm run db:push",
+    "db:studio": "cd backend && npm run db:studio"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
