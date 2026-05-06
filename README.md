@@ -20,9 +20,10 @@ npm run db:push
 ```
 
 ### 3. API Keys inside Backend
-Ensure your `backend/.env` has the correct API keys for our AI models to analyze data:
-* **`GEMINI_API_KEY`**: Your Google Gemini 1.5 Pro AI Key.
-* **`NEWS_API_KEY`**: Your NewsAPI.org token (currently implemented as `c145a84ce15c469e888b5d786de38d76`).
+GEMINI_API_KEY=your_gemini_api_key
+NEWS_API_KEY=your_news_api_key
+DATABASE_URL=your_database_url
+JWT_SECRET=your_jwt_secret
 
 ---
 
