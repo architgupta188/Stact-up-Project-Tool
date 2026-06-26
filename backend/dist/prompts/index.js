@@ -73,8 +73,31 @@ Return this EXACT JSON schema:
   },
   "compositeScore": 0,
   "verdict": "go|revise|no-go",
-  "verdictRationale": "One sentence why"
-}`;
+  "verdictRationale": "One sentence why",
+  "confidencePercentage": 0,
+  "topVerdictReasons": ["Reason 1", "Reason 2", "Reason 3"],
+  "pivotStrategy": "If verdict is not GO, suggest a specific pivot strategy. If GO, say 'No pivot needed — execute as planned.'",
+  "keySuccessFactor": "The single most important thing that will determine success or failure.",
+  "executiveSummary": {
+    "overallGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "investmentReadiness": 0,
+    "marketPotential": 0,
+    "executionFeasibility": 0,
+    "fundingPotential": 0,
+    "competitionRisk": 0,
+    "biggestOpportunity": "One sentence describing the biggest opportunity",
+    "biggestRisk": "One sentence describing the biggest risk",
+    "recommendedNextStep": "One concrete action to take this week",
+    "suggestedPivot": "If applicable, a specific pivot suggestion. Otherwise 'N/A'"
+  }
+}
+
+IMPORTANT:
+- compositeScore is 0-100 (weighted average of dimension scores × 10)
+- confidencePercentage is 0-100 (how confident you are in this assessment given available data)
+- executiveSummary scores (investmentReadiness, marketPotential, executionFeasibility, fundingPotential, competitionRisk) are each 0-100
+- overallGrade uses academic grading (A+ is best, F is worst)
+- Be honest and blunt in all assessments`;
 }
 export function buildStartupReportPrompt(input, scores, newsContext, schemeContext) {
     return `SYSTEM: You are VentureIQ, an AI startup validation engine modelled after top YC partners.
@@ -99,10 +122,14 @@ Generate ALL of the following sections as structured JSON:
   "problemAnalysis": "2-3 paragraphs analysing the depth and urgency of the problem. Be specific about WHY this problem matters and to whom.",
   "targetAudienceAnalysis": "2-3 paragraphs on how well-defined the user segment is, potential segment sizes, and gaps in targeting.",
   "marketOpportunity": {
-    "tamEstimate": "Total addressable market estimate with reasoning",
-    "samEstimate": "Serviceable addressable market estimate",
-    "somEstimate": "Serviceable obtainable market in year 1-2",
-    "narrative": "2-3 paragraphs on market dynamics, growth drivers, and opportunity sizing rationale"
+    "tamEstimate": "Total addressable market estimate (e.g. '$50B')",
+    "samEstimate": "Serviceable addressable market estimate (e.g. '$5B')",
+    "somEstimate": "Serviceable obtainable market in year 1-2 (e.g. '$50M')",
+    "narrative": "2-3 paragraphs on market dynamics, growth drivers, and opportunity sizing rationale",
+    "tamCagr": "CAGR percentage for TAM (e.g. '12.5%')",
+    "samCagr": "CAGR percentage for SAM (e.g. '15.2%')",
+    "somCagr": "CAGR percentage for SOM (e.g. '22%')",
+    "opportunityScore": 0
   },
   "competitionAnalysis": {
     "competitors": [
@@ -110,7 +137,9 @@ Generate ALL of the following sections as structured JSON:
         "name": "Competitor name",
         "description": "What they do",
         "differentiator": "Gap vs this startup idea",
-        "threat": "low|medium|high"
+        "threat": "low|medium|high",
+        "marketIntegration": 0,
+        "productDifferentiation": 0
       }
     ],
     "positioning": "How this startup should position against competitors",
@@ -124,7 +153,7 @@ Generate ALL of the following sections as structured JSON:
   ],
   "mvpSuggestions": "2-3 paragraphs with specific, narrow MVP recommendations. What to build first, what to leave out, how to test with users.",
   "risks": [
-    { "risk": "Risk description", "severity": "low|medium|high", "mitigation": "How to mitigate" }
+    { "risk": "Risk description", "severity": "low|medium|high", "probability": "low|medium|high", "impact": "low|medium|high", "mitigation": "How to mitigate" }
   ],
   "recommendations": [
     { "priority": 1, "action": "What to do", "reason": "Why this matters" }
@@ -136,16 +165,53 @@ Generate ALL of the following sections as structured JSON:
     { "week": 3, "goal": "Week goal", "tasks": ["Task 1", "Task 2"] },
     { "week": 4, "goal": "Week goal", "tasks": ["Task 1", "Task 2"] }
   ],
-  "finalVerdict": "2-3 sentences. Direct, clear, with the core reasoning for the verdict."
+  "finalVerdict": "2-3 sentences. Direct, clear, with the core reasoning for the verdict.",
+  "monetizationAnalysis": {
+    "models": [
+      {
+        "model": "Model name (e.g. SaaS Subscription, Marketplace Commission, Freemium, Enterprise Licensing, Advertising, Affiliate Revenue)",
+        "revenuePotential": 0,
+        "easeOfExecution": 0,
+        "scalability": 0,
+        "recommendationScore": 0,
+        "notes": "One sentence on why this model fits or doesn't"
+      }
+    ],
+    "bestPath": "One paragraph recommending the optimal monetization strategy and why"
+  },
+  "fundingReadiness": {
+    "bootstrapScore": 0,
+    "angelScore": 0,
+    "acceleratorScore": 0,
+    "vcScore": 0,
+    "grantScore": 0,
+    "bestPath": "Name of the best funding path",
+    "recommendation": "2-3 sentences on which funding to pursue and when"
+  },
+  "ycAssessment": {
+    "marketGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "timingGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "moatGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "scalabilityGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "founderMarketFitGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "overallGrade": "A+|A|A-|B+|B|B-|C+|C|C-|D|F",
+    "assessmentParagraph": "2-3 sentences written in the voice of a YC partner reviewing this startup application. Be direct and specific."
+  }
 }
 
 IMPORTANT:
 - Return 3-5 competitors (discover real ones based on the industry and region)
+- Each competitor MUST have marketIntegration (1-10) and productDifferentiation (1-10) scores for the competition matrix
 - Return 3-5 industry trends relevant to the sector
 - Return 3-5 applicable government schemes for the region
-- Return 3-5 risks with mitigations
+- Return 3-5 risks with probability and impact levels alongside severity and mitigation
 - Return 5-7 prioritised recommendations
 - Action plan MUST have 4 weeks with 3-5 tasks each
+- monetizationAnalysis.models MUST have 4-6 revenue models evaluated
+- All scores (revenuePotential, easeOfExecution, scalability, recommendationScore) are 1-10
+- fundingReadiness scores are 0-100
+- marketOpportunity.opportunityScore is 0-100
+- ycAssessment grades use academic grading (A+ is best, F is worst)
 - All text should be substantive, not generic. Refer to specific companies, numbers, trends.`;
 }
 export function buildInvestorReportPrompt(input, newsContext) {
@@ -212,6 +278,138 @@ Generate this JSON:
 }
 
 Return 3 idea matches, 5-7 skills to learn, 5+ free resources, 3-5 student programs.`;
+}
+export function buildStudentDiscoveryPrompt(input, newsContext) {
+    const profile = JSON.stringify({
+        interests: input.interests,
+        skills: input.skills,
+        preferredDomain: input.preferredDomain || 'Any',
+        intent: input.intent || 'join',
+    }, null, 2);
+    return `SYSTEM: You are VentureIQ's Startup Discovery Engine. Generate realistic, AI-powered startup matching results for a student/early-career professional looking to join a startup.
+
+Based on the student profile and market news context below, generate a comprehensive startup discovery response. The startups should be realistic-sounding (AI-generated but plausible) startup names and descriptions that match the student's skills and interests.
+
+Student Profile:
+${profile}
+
+Market Context:
+${newsContext}
+
+Return ONLY valid JSON matching this exact schema:
+{
+  "aiMatchSummary": {
+    "matchStrength": "Strong|Good|Moderate",
+    "topDomain": "Primary domain that fits the student",
+    "topRole": "Best role match based on skills",
+    "profileStrength": 0,
+    "recommendation": "1-2 sentence personalized recommendation"
+  },
+  "recommendedStartups": [
+    {
+      "id": "unique-id",
+      "name": "Startup Name",
+      "description": "1-2 sentence description",
+      "domain": "AI|FinTech|EdTech|HealthTech|ClimateTech|SaaS|D2C|DeepTech|Logistics|Other",
+      "stage": "Pre-Seed|Seed|Series A|Series B+|Bootstrapped",
+      "fundingStage": "Unfunded|Pre-Seed ($50K-$500K)|Seed ($500K-$2M)|Series A ($2M-$15M)|Series B+ ($15M+)",
+      "location": "City, Country",
+      "remote": true,
+      "matchScore": 0,
+      "openRoles": [
+        {
+          "title": "Role Title",
+          "type": "Developer|Designer|Marketing|Product|Data Science|Operations|Content|Sales",
+          "skills": ["Skill 1", "Skill 2"],
+          "experience": "0-1 years|1-3 years|3-5 years|5+ years",
+          "compensation": "Equity only|₹3-6 LPA|₹6-12 LPA|₹12-25 LPA|₹25+ LPA|Competitive"
+        }
+      ],
+      "founderName": "Founder Name",
+      "founderTitle": "CEO & Co-founder",
+      "founderBackground": "1 sentence founder background",
+      "teamSize": 0,
+      "highlights": ["Highlight 1", "Highlight 2"],
+      "whyMatch": "1 sentence explaining why this matches the student's profile"
+    }
+  ],
+  "trendingStartups": [
+    {
+      "id": "unique-id",
+      "name": "Startup Name",
+      "description": "1-2 sentence description",
+      "domain": "AI|FinTech|EdTech|HealthTech|ClimateTech|SaaS",
+      "stage": "Seed|Series A|Series B+",
+      "fundingStage": "Seed ($500K-$2M)|Series A ($2M-$15M)|Series B+ ($15M+)",
+      "location": "City, Country",
+      "remote": true,
+      "matchScore": 0,
+      "openRoles": [{ "title": "Role", "type": "Developer", "skills": ["Skill"], "experience": "1-3 years", "compensation": "Competitive" }],
+      "founderName": "Founder Name",
+      "founderTitle": "CEO",
+      "founderBackground": "Background",
+      "teamSize": 0,
+      "highlights": ["Highlight"],
+      "trendReason": "Why this startup is trending"
+    }
+  ],
+  "recentlyFundedStartups": [
+    {
+      "id": "unique-id",
+      "name": "Startup Name",
+      "description": "1-2 sentence description",
+      "domain": "AI|FinTech|EdTech|HealthTech|ClimateTech|SaaS",
+      "stage": "Seed|Series A|Series B+",
+      "fundingStage": "Recently raised amount",
+      "location": "City, Country",
+      "remote": false,
+      "matchScore": 0,
+      "openRoles": [{ "title": "Role", "type": "Developer", "skills": ["Skill"], "experience": "1-3 years", "compensation": "Competitive" }],
+      "founderName": "Founder Name",
+      "founderTitle": "CEO",
+      "founderBackground": "Background",
+      "teamSize": 0,
+      "highlights": ["Highlight"],
+      "fundingDetail": "Just raised $X from Investor Y"
+    }
+  ],
+  "openPositions": [
+    {
+      "id": "unique-id",
+      "role": "Role Title",
+      "type": "Developer|Designer|Marketing|Product|Data Science",
+      "startup": "Startup Name",
+      "domain": "AI|FinTech|EdTech|HealthTech|ClimateTech|SaaS",
+      "skills": ["Skill 1", "Skill 2"],
+      "experience": "0-1 years|1-3 years",
+      "compensation": "Equity only|₹3-6 LPA|₹6-12 LPA|Competitive",
+      "remote": true,
+      "matchScore": 0,
+      "description": "2-3 sentence role description"
+    }
+  ],
+  "founderSpotlights": [
+    {
+      "name": "Founder Name",
+      "startup": "Startup Name",
+      "background": "2-3 sentence background",
+      "advice": "1 sentence advice for students",
+      "domain": "AI|FinTech|EdTech|HealthTech|ClimateTech|SaaS"
+    }
+  ]
+}
+
+IMPORTANT:
+- Generate 5-6 recommended startups sorted by matchScore (highest first, 70-98 range)
+- Generate 3-4 trending startups
+- Generate 3-4 recently funded startups
+- Generate 6-8 open positions
+- Generate 3 founder spotlights
+- matchScore is 0-100 based on how well the startup/role matches the student's skills and interests
+- profileStrength is 0-100 based on how complete and competitive the student's profile is
+- All startups should be realistic-sounding Indian startups with plausible details
+- Skills in roles should be specific (e.g., "React", "Python", "Figma", not generic)
+- Make the data feel real and specific to the student's domain preferences`;
 }
 export function buildChatSystemPrompt(reportOutput) {
     return `SYSTEM: You are VentureIQ's follow-up AI assistant. The user has just received a startup validation report and wants to dig deeper.

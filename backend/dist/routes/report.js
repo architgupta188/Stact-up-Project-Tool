@@ -17,6 +17,7 @@ reportRouter.post('/generate', requireAuth, reportGenerationLimiter, async (req,
     try {
         const parseResult = reportInputSchema.safeParse(req.body);
         if (!parseResult.success) {
+            console.error('Validation error on generate:', parseResult.error.flatten().fieldErrors, 'Payload:', req.body);
             res.status(422).json({
                 error: 'VALIDATION_ERROR',
                 fields: parseResult.error.flatten().fieldErrors,
@@ -39,6 +40,7 @@ reportRouter.post('/generate', requireAuth, reportGenerationLimiter, async (req,
         });
     }
     catch (err) {
+        console.error('API Error in /generate:', err);
         if (!res.headersSent) {
             res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message });
         }

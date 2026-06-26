@@ -1,1 +1,4 @@
 node_modules
+backend/sqlite.db
+backend/.env.backup
+

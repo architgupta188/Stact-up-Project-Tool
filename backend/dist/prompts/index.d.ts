@@ -4,4 +4,5 @@ export declare function buildScoringPrompt(input: StartupInput, newsContext: str
 export declare function buildStartupReportPrompt(input: StartupInput, scores: any, newsContext: string, schemeContext: string): string;
 export declare function buildInvestorReportPrompt(input: any, newsContext: string): string;
 export declare function buildStudentReportPrompt(input: any, newsContext: string): string;
+export declare function buildStudentDiscoveryPrompt(input: any, newsContext: string): string;
 export declare function buildChatSystemPrompt(reportOutput: any): string;

@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 import { env } from './env.js';
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 export const geminiPro = genAI.getGenerativeModel({
-    model: 'gemini-1.5-pro',
+    model: 'gemini-flash-lite-latest',
     safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },

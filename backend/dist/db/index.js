@@ -1,10 +1,8 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import { env } from '../config/env.js';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import Database from 'better-sqlite3';
 import * as schema from './schema.js';
-const pool = new Pool({
-    connectionString: env.DATABASE_URL,
-    ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
-});
-export const db = drizzle(pool, { schema });
+import path from 'path';
+// Use a local sqlite file
+const sqlite = new Database(path.join(process.cwd(), 'sqlite.db'));
+export const db = drizzle(sqlite, { schema });
 //# sourceMappingURL=index.js.map

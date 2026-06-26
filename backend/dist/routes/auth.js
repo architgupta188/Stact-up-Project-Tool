@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
@@ -27,7 +27,7 @@ authRouter.post('/signup', async (req, res) => {
             passwordHash,
             defaultRole: 'startup',
         }).returning();
-        const accessToken = jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '15m' });
+        const accessToken = jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '30d' });
         const refreshToken = jwt.sign({ sub: user.id }, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
         await db.update(users).set({ refreshToken }).where(eq(users.id, user.id));
         res.cookie('refresh_token', refreshToken, {
@@ -57,7 +57,7 @@ authRouter.post('/login', async (req, res) => {
             res.status(401).json({ error: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect' });
             return;
         }
-        const accessToken = jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '15m' });
+        const accessToken = jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '30d' });
         const refreshToken = jwt.sign({ sub: user.id }, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
         await db.update(users).set({ refreshToken }).where(eq(users.id, user.id));
         res.cookie('refresh_token', refreshToken, {
@@ -93,7 +93,7 @@ authRouter.post('/refresh', async (req, res) => {
             res.status(401).json({ error: 'INVALID_REFRESH_TOKEN' });
             return;
         }
-        const newAccessToken = jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '15m' });
+        const newAccessToken = jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '30d' });
         res.status(200).json({ accessToken: newAccessToken });
     }
     catch (err) {

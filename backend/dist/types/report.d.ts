@@ -45,6 +45,8 @@ export interface CompetitorCard {
     description: string;
     differentiator: string;
     threat: 'low' | 'medium' | 'high';
+    marketIntegration?: number;
+    productDifferentiation?: number;
 }
 export interface TrendItem {
     title: string;
@@ -63,6 +65,8 @@ export interface RiskItem {
     risk: string;
     severity: 'low' | 'medium' | 'high';
     mitigation: string;
+    probability?: 'low' | 'medium' | 'high';
+    impact?: 'low' | 'medium' | 'high';
 }
 export interface RecommendationItem {
     priority: number;
@@ -80,6 +84,48 @@ export interface NewsArticle {
     source: string;
     publishedAt: string;
     url: string;
+}
+export interface ExecutiveSummary {
+    overallGrade: string;
+    investmentReadiness: number;
+    marketPotential: number;
+    executionFeasibility: number;
+    fundingPotential: number;
+    competitionRisk: number;
+    biggestOpportunity: string;
+    biggestRisk: string;
+    recommendedNextStep: string;
+    suggestedPivot: string;
+}
+export interface MonetizationModel {
+    model: string;
+    revenuePotential: number;
+    easeOfExecution: number;
+    scalability: number;
+    recommendationScore: number;
+    notes: string;
+}
+export interface MonetizationAnalysis {
+    models: MonetizationModel[];
+    bestPath: string;
+}
+export interface FundingReadiness {
+    bootstrapScore: number;
+    angelScore: number;
+    acceleratorScore: number;
+    vcScore: number;
+    grantScore: number;
+    bestPath: string;
+    recommendation: string;
+}
+export interface YCAssessment {
+    marketGrade: string;
+    timingGrade: string;
+    moatGrade: string;
+    scalabilityGrade: string;
+    founderMarketFitGrade: string;
+    overallGrade: string;
+    assessmentParagraph: string;
 }
 export interface StartupReportOutput {
     role: 'startup';
@@ -99,6 +145,14 @@ export interface StartupReportOutput {
     compositeScore: number;
     verdict: 'go' | 'revise' | 'no-go';
     verdictRationale: string;
+    confidencePercentage: number;
+    topVerdictReasons: string[];
+    pivotStrategy: string;
+    keySuccessFactor: string;
+    executiveSummary: ExecutiveSummary;
+    monetizationAnalysis: MonetizationAnalysis;
+    fundingReadiness: FundingReadiness;
+    ycAssessment: YCAssessment;
     sections: {
         ideaSummary: string;
         problemAnalysis: string;
@@ -108,6 +162,10 @@ export interface StartupReportOutput {
             samEstimate: string;
             somEstimate: string;
             narrative: string;
+            tamCagr?: string;
+            samCagr?: string;
+            somCagr?: string;
+            opportunityScore?: number;
         };
         competitionAnalysis: {
             competitors: CompetitorCard[];
@@ -152,15 +210,117 @@ export interface InvestorReportOutput {
         dueDiligenceAngles: string[];
     };
 }
+export interface StudentDiscoveryData {
+    aiMatchSummary: {
+        matchStrength: 'Strong' | 'Good' | 'Moderate';
+        topDomain: string;
+        topRole: string;
+        profileStrength: number;
+        recommendation: string;
+    };
+    recommendedStartups: Array<{
+        id: string;
+        name: string;
+        description: string;
+        domain: string;
+        stage: string;
+        fundingStage: string;
+        location: string;
+        remote: boolean;
+        matchScore: number;
+        openRoles: Array<{
+            title: string;
+            type: string;
+            skills: string[];
+            experience: string;
+            compensation: string;
+        }>;
+        founderName: string;
+        founderTitle: string;
+        founderBackground: string;
+        teamSize: number;
+        highlights: string[];
+        whyMatch: string;
+    }>;
+    trendingStartups: Array<{
+        id: string;
+        name: string;
+        description: string;
+        domain: string;
+        stage: string;
+        fundingStage: string;
+        location: string;
+        remote: boolean;
+        matchScore: number;
+        openRoles: Array<{
+            title: string;
+            type: string;
+            skills: string[];
+            experience: string;
+            compensation: string;
+        }>;
+        founderName: string;
+        founderTitle: string;
+        founderBackground: string;
+        teamSize: number;
+        highlights: string[];
+        trendReason: string;
+    }>;
+    recentlyFundedStartups: Array<{
+        id: string;
+        name: string;
+        description: string;
+        domain: string;
+        stage: string;
+        fundingStage: string;
+        location: string;
+        remote: boolean;
+        matchScore: number;
+        openRoles: Array<{
+            title: string;
+            type: string;
+            skills: string[];
+            experience: string;
+            compensation: string;
+        }>;
+        founderName: string;
+        founderTitle: string;
+        founderBackground: string;
+        teamSize: number;
+        highlights: string[];
+        fundingDetail: string;
+    }>;
+    openPositions: Array<{
+        id: string;
+        role: string;
+        type: string;
+        startup: string;
+        domain: string;
+        skills: string[];
+        experience: string;
+        compensation: string;
+        remote: boolean;
+        matchScore: number;
+        description: string;
+    }>;
+    founderSpotlights: Array<{
+        name: string;
+        startup: string;
+        background: string;
+        advice: string;
+        domain: string;
+    }>;
+}
 export interface StudentReportOutput {
     role: 'student';
+    intent: 'build' | 'join' | 'explore';
     generatedAt: string;
-    sections: {
+    sections?: {
         ideaMatches: Array<{
             rank: number;
             name: string;
             description: string;
-            feasibility: 'Beginner' | 'Intermediate' | 'Advanced';
+            feasibility: string;
             budgetRequired: string;
             keyChallenge: string;
         }>;
@@ -189,5 +349,6 @@ export interface StudentReportOutput {
         }>;
         validationGuide: string;
     };
+    discoveryData?: StudentDiscoveryData | null;
 }
 export type ReportOutput = StartupReportOutput | InvestorReportOutput | StudentReportOutput;

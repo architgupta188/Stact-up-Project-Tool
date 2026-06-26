@@ -9,6 +9,7 @@ import {
   buildStartupReportPrompt,
   buildInvestorReportPrompt,
   buildStudentReportPrompt,
+  buildStudentDiscoveryPrompt,
 } from '../prompts/index.js';
 import type { StartupInput, InvestorInput, StudentInput, ReportInput } from '../types/report.js';
 
@@ -83,6 +84,14 @@ export async function runStartupPipeline(
       compositeScore,
       verdict: scoreResult.verdict || verdict,
       verdictRationale: scoreResult.verdictRationale || reportSections.finalVerdict || 'Analysis complete.',
+      confidencePercentage: scoreResult.confidencePercentage || 70,
+      topVerdictReasons: scoreResult.topVerdictReasons || [],
+      pivotStrategy: scoreResult.pivotStrategy || '',
+      keySuccessFactor: scoreResult.keySuccessFactor || '',
+      executiveSummary: scoreResult.executiveSummary || null,
+      monetizationAnalysis: reportSections.monetizationAnalysis || null,
+      fundingReadiness: reportSections.fundingReadiness || null,
+      ycAssessment: reportSections.ycAssessment || null,
       sections: {
         ideaSummary: reportSections.ideaSummary || '',
         problemAnalysis: reportSections.problemAnalysis || '',
@@ -189,32 +198,56 @@ export async function runStudentPipeline(
     const newsArticles = await fetchNews(keywords, 'India');
     const newsContext = formatNewsContext(newsArticles);
 
-    sse.send('pipeline_step', { step: 2, label: 'Discovering matching ideas...' });
-    sse.send('pipeline_step', { step: 3, label: 'Building your roadmap...' });
+    if (input.intent === 'join') {
+      sse.send('pipeline_step', { step: 2, label: 'Matching with modern startups...' });
+      sse.send('pipeline_step', { step: 3, label: 'Calculating role compatibility...' });
 
-    const reportSections = await callGemini(buildStudentReportPrompt(input, newsContext));
+      const discoveryData = await callGemini(buildStudentDiscoveryPrompt(input, newsContext));
 
-    const outputData = {
-      role: 'student' as const,
-      generatedAt: new Date().toISOString(),
-      sections: {
-        ideaMatches: reportSections.ideaMatches || [],
-        skillsToLearn: reportSections.skillsToLearn || [],
-        mvpRoadmap: reportSections.mvpRoadmap || undefined,
-        freeResources: reportSections.freeResources || [],
-        studentPrograms: reportSections.studentPrograms || [],
-        validationGuide: reportSections.validationGuide || '',
-      },
-    };
+      const outputData = {
+        role: 'student' as const,
+        intent: 'join' as const,
+        generatedAt: new Date().toISOString(),
+        discoveryData: discoveryData || null,
+      };
 
-    await db.update(reports).set({
-      status: 'complete',
-      outputData,
-      generationMs: Date.now() - startTime,
-      updatedAt: new Date(),
-    }).where(eq(reports.id, reportId));
+      await db.update(reports).set({
+        status: 'complete',
+        outputData,
+        generationMs: Date.now() - startTime,
+        updatedAt: new Date(),
+      }).where(eq(reports.id, reportId));
 
-    sse.send('pipeline_complete', { reportId, score: null, verdict: 'na' });
+      sse.send('pipeline_complete', { reportId, score: null, verdict: 'na' });
+    } else {
+      sse.send('pipeline_step', { step: 2, label: 'Discovering matching ideas...' });
+      sse.send('pipeline_step', { step: 3, label: 'Building your roadmap...' });
+
+      const reportSections = await callGemini(buildStudentReportPrompt(input, newsContext));
+
+      const outputData = {
+        role: 'student' as const,
+        intent: input.intent,
+        generatedAt: new Date().toISOString(),
+        sections: {
+          ideaMatches: reportSections.ideaMatches || [],
+          skillsToLearn: reportSections.skillsToLearn || [],
+          mvpRoadmap: reportSections.mvpRoadmap || undefined,
+          freeResources: reportSections.freeResources || [],
+          studentPrograms: reportSections.studentPrograms || [],
+          validationGuide: reportSections.validationGuide || '',
+        },
+      };
+
+      await db.update(reports).set({
+        status: 'complete',
+        outputData,
+        generationMs: Date.now() - startTime,
+        updatedAt: new Date(),
+      }).where(eq(reports.id, reportId));
+
+      sse.send('pipeline_complete', { reportId, score: null, verdict: 'na' });
+    }
   } catch (error: any) {
     console.error('Student pipeline failed:', error);
     await db.update(reports).set({ status: 'failed', updatedAt: new Date() }).where(eq(reports.id, reportId));

@@ -14,7 +14,6 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-// Hydrate from localStorage on init
 function getInitialState() {
   try {
     const stored = localStorage.getItem('ventureiq_auth');

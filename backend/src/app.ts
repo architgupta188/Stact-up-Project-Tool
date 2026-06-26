@@ -5,6 +5,7 @@ import compression from 'compression';
 import { authRouter } from './routes/auth.js';
 import { reportRouter } from './routes/report.js';
 import { chatRouter } from './routes/chat.js';
+import discoverRouter from './routes/discover.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { globalLimiter } from './middleware/rateLimit.js';
 
@@ -26,6 +27,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/report', reportRouter);
 app.use('/api/reports', reportRouter); // alias for history
 app.use('/api', chatRouter);
+app.use('/api', discoverRouter);
 
 // Error handler
 app.use(errorHandler);

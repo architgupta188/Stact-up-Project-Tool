@@ -1,25 +1,40 @@
 import { geminiPro } from '../config/gemini.js';
-export async function callGemini(prompt) {
-    const result = await geminiPro.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-    try {
-        return JSON.parse(text);
-    }
-    catch {
-        // Try to extract JSON from the text
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+export async function callGemini(prompt, maxRetries = 2) {
+    let lastError;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const result = await geminiPro.generateContent(prompt);
+            const response = result.response;
+            const text = response.text();
             try {
-                return JSON.parse(jsonMatch[0]);
+                return JSON.parse(text);
             }
             catch {
-                // If still fails, return raw text wrapped in an object
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try {
+                        return JSON.parse(jsonMatch[0]);
+                    }
+                    catch {
+                        return { raw: text };
+                    }
+                }
                 return { raw: text };
             }
         }
-        return { raw: text };
+        catch (error) {
+            lastError = error;
+            if ((error.status === 429 || error.status >= 500) && attempt < maxRetries) {
+                const delay = Math.min(3000 * Math.pow(2, attempt), 12000); // 3s, 6s, 12s
+                console.log(`Gemini API rate limited (attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${delay / 1000}s...`);
+                await sleep(delay);
+                continue;
+            }
+            throw error;
+        }
     }
+    throw lastError;
 }
 export async function* streamGeminiChat(systemPrompt, history, userMessage) {
     const chatHistory = history.map(msg => ({

@@ -3,7 +3,7 @@ import { reports } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { callGemini } from './geminiService.js';
 import { fetchNews, formatNewsContext } from './newsService.js';
-import { buildClassifyPrompt, buildScoringPrompt, buildStartupReportPrompt, buildInvestorReportPrompt, buildStudentReportPrompt, } from '../prompts/index.js';
+import { buildClassifyPrompt, buildScoringPrompt, buildStartupReportPrompt, buildInvestorReportPrompt, buildStudentReportPrompt, buildStudentDiscoveryPrompt, } from '../prompts/index.js';
 const PIPELINE_STEPS = [
     'Classifying your idea...',
     'Researching market trends...',
@@ -47,7 +47,7 @@ export async function runStartupPipeline(reportId, input, sse) {
         // Step 5: Report
         sse.send('pipeline_step', { step: 6, label: PIPELINE_STEPS[5] });
         const reportSections = await callGemini(buildStartupReportPrompt(input, scoreResult, newsContext, schemeContext));
-        const compositeScore = scoreResult.compositeScore || Math.round(Object.values(scoreResult.scores || {}).reduce((sum, s) => sum + (s.score || 0), 0) / 10 * 10);
+        const compositeScore = scoreResult.compositeScore != null ? Math.round(Number(scoreResult.compositeScore)) : Math.round(Object.values(scoreResult.scores || {}).reduce((sum, s) => sum + (Number(s.score) || 0), 0) / 10 * 10);
         const verdict = compositeScore >= 70 ? 'go' : compositeScore >= 40 ? 'revise' : 'no-go';
         const outputData = {
             role: 'startup',
@@ -56,6 +56,14 @@ export async function runStartupPipeline(reportId, input, sse) {
             compositeScore,
             verdict: scoreResult.verdict || verdict,
             verdictRationale: scoreResult.verdictRationale || reportSections.finalVerdict || 'Analysis complete.',
+            confidencePercentage: scoreResult.confidencePercentage || 70,
+            topVerdictReasons: scoreResult.topVerdictReasons || [],
+            pivotStrategy: scoreResult.pivotStrategy || '',
+            keySuccessFactor: scoreResult.keySuccessFactor || '',
+            executiveSummary: scoreResult.executiveSummary || null,
+            monetizationAnalysis: reportSections.monetizationAnalysis || null,
+            fundingReadiness: reportSections.fundingReadiness || null,
+            ycAssessment: reportSections.ycAssessment || null,
             sections: {
                 ideaSummary: reportSections.ideaSummary || '',
                 problemAnalysis: reportSections.problemAnalysis || '',
@@ -143,28 +151,49 @@ export async function runStudentPipeline(reportId, input, sse) {
         const keywords = [...input.interests.slice(0, 2), input.preferredDomain];
         const newsArticles = await fetchNews(keywords, 'India');
         const newsContext = formatNewsContext(newsArticles);
-        sse.send('pipeline_step', { step: 2, label: 'Discovering matching ideas...' });
-        sse.send('pipeline_step', { step: 3, label: 'Building your roadmap...' });
-        const reportSections = await callGemini(buildStudentReportPrompt(input, newsContext));
-        const outputData = {
-            role: 'student',
-            generatedAt: new Date().toISOString(),
-            sections: {
-                ideaMatches: reportSections.ideaMatches || [],
-                skillsToLearn: reportSections.skillsToLearn || [],
-                mvpRoadmap: reportSections.mvpRoadmap || undefined,
-                freeResources: reportSections.freeResources || [],
-                studentPrograms: reportSections.studentPrograms || [],
-                validationGuide: reportSections.validationGuide || '',
-            },
-        };
-        await db.update(reports).set({
-            status: 'complete',
-            outputData,
-            generationMs: Date.now() - startTime,
-            updatedAt: new Date(),
-        }).where(eq(reports.id, reportId));
-        sse.send('pipeline_complete', { reportId, score: null, verdict: 'na' });
+        if (input.intent === 'join') {
+            sse.send('pipeline_step', { step: 2, label: 'Matching with modern startups...' });
+            sse.send('pipeline_step', { step: 3, label: 'Calculating role compatibility...' });
+            const discoveryData = await callGemini(buildStudentDiscoveryPrompt(input, newsContext));
+            const outputData = {
+                role: 'student',
+                intent: 'join',
+                generatedAt: new Date().toISOString(),
+                discoveryData: discoveryData || null,
+            };
+            await db.update(reports).set({
+                status: 'complete',
+                outputData,
+                generationMs: Date.now() - startTime,
+                updatedAt: new Date(),
+            }).where(eq(reports.id, reportId));
+            sse.send('pipeline_complete', { reportId, score: null, verdict: 'na' });
+        }
+        else {
+            sse.send('pipeline_step', { step: 2, label: 'Discovering matching ideas...' });
+            sse.send('pipeline_step', { step: 3, label: 'Building your roadmap...' });
+            const reportSections = await callGemini(buildStudentReportPrompt(input, newsContext));
+            const outputData = {
+                role: 'student',
+                intent: input.intent,
+                generatedAt: new Date().toISOString(),
+                sections: {
+                    ideaMatches: reportSections.ideaMatches || [],
+                    skillsToLearn: reportSections.skillsToLearn || [],
+                    mvpRoadmap: reportSections.mvpRoadmap || undefined,
+                    freeResources: reportSections.freeResources || [],
+                    studentPrograms: reportSections.studentPrograms || [],
+                    validationGuide: reportSections.validationGuide || '',
+                },
+            };
+            await db.update(reports).set({
+                status: 'complete',
+                outputData,
+                generationMs: Date.now() - startTime,
+                updatedAt: new Date(),
+            }).where(eq(reports.id, reportId));
+            sse.send('pipeline_complete', { reportId, score: null, verdict: 'na' });
+        }
     }
     catch (error) {
         console.error('Student pipeline failed:', error);
